@@ -43,7 +43,9 @@ def get_cracow_graph():
         )
 
         # Zapytanie SQL do pobrania danych grafu
-        sql = "SELECT ST_AsText(ST_StartPoint(way)), ST_AsText(ST_EndPoint(way)), source, target, cost, highway " \
+        sql = "SELECT ST_AsText(ST_Transform(ST_StartPoint(way), 4326)) AS start_point, " \
+              "ST_AsText(ST_Transform(ST_EndPoint(way), 4326)) AS end_point, " \
+              "source, target, cost, highway " \
               "FROM planet_osm_line " \
               "WHERE railway IS NULL " \
               "AND cost < 1000 " \
