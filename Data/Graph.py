@@ -1,14 +1,17 @@
 import random
 
+from Data import Data_Processing
+
 MAX_WEIGHT = 20
 
 
 class Vertex:
     def __init__(self, vertex_id, x, y):
-        self.id = vertex_id
+        self.id: str = vertex_id
         self.x = x  # Współrzędna X wierzchołka
         self.y = y  # Współrzędna Y wierzchołka
-        self.edges = []  # Lista krawędzi wychodzących z tego wierzchołka
+        self.outcoming_edges = []  # Lista krawędzi wychodzących z tego wierzchołka
+        self.incoming_edges = []  # Lista krawędzi wychodzących z tego wierzchołka
         self.value = 0  # Początkowa wartość, np. natężenie ruchu
         self.messages = []
         self.active = False  # Czy wierzchołek jest aktywny
@@ -16,12 +19,15 @@ class Vertex:
 
     def __str__(self):
         vertex = f"Vertex({self.id}) "
-        for edge in self.edges:
+        for edge in self.outcoming_edges:
             vertex += str(edge) + ' '
         return vertex
 
-    def add_edge(self, edge):
-        self.edges.append(edge)
+    def add_outcoming_edge(self, edge):
+        self.outcoming_edges.append(edge)
+
+    def add_incoming_edge(self, edge):
+        self.incoming_edges.append(edge)
 
     def initialize_traffic(self, probability, max_value, weight):
         if random.random() < (probability * (weight ** 2) / (MAX_WEIGHT ** 2)):
@@ -52,6 +58,11 @@ class Graph:
         self.vertices: dict[int, Vertex] = {}
         self.edges: list[Edge] = []
 
+        rows = Data_Processing.get_cracow_graph()
+        for row in rows:
+            start_point, end_point, source, target, highway, oneway, weight = row
+            self.add_edge(start_point, end_point, str(source), str(target), oneway, weight)
+
     def add_vertex(self, vertex):
         if vertex.id not in self.vertices:
             self.vertices[vertex.id] = vertex
@@ -65,11 +76,13 @@ class Graph:
 
         edge = Edge(start_id, end_id, weight, Edge.edge_id, is_oneway)
         self.edges.append(edge)
-        self.vertices[start_id].add_edge(edge)
+        self.vertices[start_id].add_outcoming_edge(edge)
+        self.vertices[end_id].add_incoming_edge(edge)
         if not is_oneway:
             edge = Edge(end_id, start_id, weight, Edge.edge_id, is_oneway)
             self.edges.append(edge)
-            self.vertices[end_id].add_edge(edge)
+            self.vertices[end_id].add_outcoming_edge(edge)
+            self.vertices[end_id].add_incoming_edge(edge)
         Edge.edge_id += 1
 
     def initialize_traffic(self, probability, max_value):

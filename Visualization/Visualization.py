@@ -4,10 +4,12 @@ import geopandas as gpd
 import matplotlib.colors as mcolors
 
 
+
+
 def initialize_dataframe(graph):
     rows = []
     for vertex in graph.vertices.values():
-        for edge in vertex.edges:
+        for edge in vertex.outcoming_edges:
             start_vertex = graph.vertices[edge.start_vertex]
             end_vertex = graph.vertices[edge.end_vertex]
             edge_id = edge.id
@@ -75,30 +77,6 @@ def process_dataframe(df):
     return new_df
 
 
-# def draw_graph(graph, ax, step):
-#     colors = [(0, 'green'), (0.25, 'yellow'), (0.75, 'yellow'), (1, 'red')]
-#     cmap = LinearSegmentedColormap.from_list('custom_colormap', colors)
-#     norm = mcolors.Normalize(vmin=0, vmax=60)  # Zakres wartości ruchu
-#
-#     for vertex in graph.vertices.values():
-#         for edge in vertex.edges:
-#             start_vertex = graph.vertices[edge.start_vertex]
-#             end_vertex = graph.vertices[edge.end_vertex]
-#
-#             # Oblicz wartość ruchu dla krawędzi
-#             edge_traffic = (start_vertex.value + end_vertex.value) / 2
-#
-#             # Koloruj krawędź na podstawie wartości ruchu
-#             color = cmap(norm(edge_traffic))
-#             ax.plot([start_vertex.x, end_vertex.x], [start_vertex.y, end_vertex.y], color=color, linewidth=2)
-#         color2 = cmap(norm(vertex.value))
-#         ax.plot(vertex.x, vertex.y, 'o', color=color2)
-#
-#     ax.set_title(f"Symulacja Ruchu Drogowego, krok {step + 1}")
-#     ax.set_xlabel("X")
-#     ax.set_ylabel("Y")
-
-
 def get_color(traffic_value, max_traffic, cmap):
     normalized_value = traffic_value / max_traffic
     return mcolors.to_hex(cmap(normalized_value))
@@ -111,7 +89,7 @@ def get_color2(traffic_value, max_traffic):
 
 
 def get_cmap():
-    colors = ["green", "yellow", "red"]
+    colors = ["green", "red"]
     n_bins = 20
     return LinearSegmentedColormap.from_list("traffic_cmap", colors, N=n_bins)
 

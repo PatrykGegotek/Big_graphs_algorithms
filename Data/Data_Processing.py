@@ -1,3 +1,5 @@
+import sys
+
 import psycopg2
 from shapely.wkt import loads
 import matplotlib.pyplot as plt
@@ -6,6 +8,10 @@ from shapely.ops import transform
 from pyproj import Transformer
 
 HIGHWAY_TO_WEIGHT = {
+    "motorway": 20,
+    "trunk": 20,
+    "motorway_link": 20,
+    "trunk_link": 20,
     "primary": 20,
     "secondary": 18,
     "tertiary": 16,
@@ -135,7 +141,7 @@ def get_cracow_graph():
         conn = psycopg2.connect(
             host="localhost",
             port="5432",
-            dbname="Cracow_Map",
+            dbname="Cracow_Map_Big",
             user="postgres",
             password="admin"
         )
@@ -147,8 +153,11 @@ def get_cracow_graph():
               "source, target, highway, oneway " \
               "FROM planet_osm_line " \
               "WHERE railway IS NULL " \
-              "AND cost < 1000 " \
-              "AND highway NOT IN ('footway', 'cycleway', 'elevator', 'steps', 'service', 'path');"
+              "AND highway NOT IN " \
+              "('footway', 'cycleway', 'elevator', 'steps', 'service', 'path', 'proposed', 'track', " \
+              "'pedestrian', 'bridleway', 'corridor', 'planned', 'raceway');"
+
+
 
         # sql = "SELECT ST_AsText(ST_Transform(ST_StartPoint(way), 4326)) AS start_point, " \
         #       "ST_AsText(ST_Transform(ST_EndPoint(way), 4326)) AS end_point, " \
@@ -167,6 +176,8 @@ def get_cracow_graph():
         conn.close()
 
         # print(rows)
+        for row in rows:
+            print(row[-2])
 
         id = 0
         new_rows = []
@@ -188,6 +199,7 @@ def get_cracow_graph():
             highway = row[3]
             oneway = row[4]
             multi_line = loads(multilinestring)
+            print(multi_line)
             for line in multi_line.geoms:
                 meters = transform(transform_point, line).length
                 line_length = len(line.coords)
@@ -201,6 +213,7 @@ def get_cracow_graph():
                     # print(f"line_length:{line_length}")
                     # print(f"step:{step}")
                     # print()
+                    print("\n", "START PROCESSING")
                     for i in range(0, line_length - 1, step):
                         start_point = line.coords[i]
                         last_index = line_length - 1 if step + i >= line_length - 1 else i + step
@@ -208,40 +221,32 @@ def get_cracow_graph():
                         # print(f"last_index:{last_index}")
                         end_point = line.coords[last_index]
                         if i == 0:
+                            print("PROCESS START NODE: ", source)
                             new_source = str(source)
                         else:
                             new_source = f"custom_{id}"
+                            print("Middle: ", new_source)
                             id += 1
                         if last_index == line_length - 1:
+                            print("PROCESS END NODE: ", target)
                             new_target = str(target)
                         else:
                             new_target = f"custom_{id}"
+                            print("Middle: ", new_target)
                         start_point = [start_point[0], start_point[1]]
                         end_point = [end_point[0], end_point[1]]
                         new_rows.append([start_point, end_point, new_source, new_target, highway, oneway, get_weight(highway)])
                 else:
+                    print("NO PROCESSING")
                     start_point = line.coords[0]
                     end_point = line.coords[-1]
                     start_point = [start_point[0], start_point[1]]
                     end_point = [end_point[0], end_point[1]]
                     new_rows.append([start_point, end_point, source, target, highway, oneway, get_weight(highway)])
 
-                # for i in range(len(line.coords) - 1):
-                #     start_point = line.coords[i]
-                #     end_point = line.coords[i+1]
-                #     if i == 0:
-                #         new_source = str(source)
-                #     else:
-                #         new_source = f"custom_{id}"
-                #         id += 1
-                #     if i == len(line.coords) - 2:
-                #         new_target = str(target)
-                #     else:
-                #         new_target = f"custom_{id}"
-                #     new_rows.append([start_point, end_point, new_source, new_target, highway, get_weight(highway)])
-        for row in new_rows:
-            print(row)
-
+        # for row in new_rows:
+        #     print(row)
+        # sys.exit()
         return new_rows
 
     except psycopg2.Error as e:

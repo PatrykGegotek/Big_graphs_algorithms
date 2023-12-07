@@ -28,15 +28,15 @@ def compute(vertex: Vertex):
 
 def send_message(vertex: Vertex):
     if vertex.value > 0:
-        total_edges = len(vertex.edges)
+        total_edges = len(vertex.outcoming_edges)
         if total_edges > 0:
 
             total_weights = 0
-            for edge in vertex.edges:
+            for edge in vertex.outcoming_edges:
                 total_weights += edge.weight
             minimal_value = vertex.value / total_weights
 
-            for edge in vertex.edges:
+            for edge in vertex.outcoming_edges:
                 if vertex.value == 0:
                     break
                 transmit_value = int(random.uniform(0.4, 1.0) * minimal_value * edge.weight)
@@ -85,17 +85,12 @@ def run_pregel(graph: Graph, max_supersteps: int):
     return gdf
 
 
-rows = Data_Processing.get_cracow_graph()
 graph = Graph()
-
-for row in rows:
-    start_point, end_point, source, target, highway, oneway, weight = row
-    graph.add_edge(start_point, end_point, source, target, oneway, weight)
 
 print(f"Liczba wierzchołków: {len(graph.vertices)}")
 print(f"Liczba krawędzi: {len(graph.edges)}")
 
-steps = 50
+steps = 3
 
 graph.initialize_traffic(probability=0.75, max_value=90)
 gdf = run_pregel(graph, max_supersteps=steps)
@@ -104,7 +99,7 @@ gdf = process_dataframe(gdf)
 print(gdf)
 
 for i in range(steps):
-    mapa = folium.Map(location=[50.074, 19.92], zoom_start=14)
+    mapa = folium.Map(location=[50.074, 19.92], zoom_start=13)
 
     for _, row in gdf.iterrows():
         folium.PolyLine(
