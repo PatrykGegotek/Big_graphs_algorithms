@@ -1,7 +1,10 @@
+import os
+import pickle
 import random
 
 from Data import Data_Processing
 
+GRAPH_PATH = "C:\\Users\\patryk\\Desktop\\Inżynierka\\Algorithms implementation\\Data\\Graph_Data.pkl"
 MAX_WEIGHT = 20
 
 
@@ -42,12 +45,14 @@ class Edge:
     static_edges = []
     edge_id = 0
 
-    def __init__(self, start_vertex, end_vertex, weight, id, oneway):
+    def __init__(self, start_vertex, end_vertex, weight, id, oneway, duplicate=False):
         self.start_vertex = start_vertex
         self.end_vertex = end_vertex
         self.weight = weight
         self.id = id
         self.oneway = oneway
+        self.value = 0
+        self.duplicate = duplicate
 
     def __str__(self):
         return f"Edge(from: {self.start_vertex}, to: {self.end_vertex}, weight: {self.weight:.0f})"
@@ -58,10 +63,17 @@ class Graph:
         self.vertices: dict[int, Vertex] = {}
         self.edges: list[Edge] = []
 
-        rows = Data_Processing.get_cracow_graph()
+        if os.path.exists(GRAPH_PATH):
+            with open(GRAPH_PATH, 'rb') as file:
+                rows = pickle.load(file)
+        else:
+            rows = Data_Processing.get_cracow_graph()
+
         for row in rows:
             start_point, end_point, source, target, highway, oneway, weight = row
             self.add_edge(start_point, end_point, str(source), str(target), oneway, weight)
+
+        print(f"Created graph with {len(self.vertices)} vertices and {len(self.edges)} edges.")
 
     def add_vertex(self, vertex):
         if vertex.id not in self.vertices:
@@ -79,7 +91,7 @@ class Graph:
         self.vertices[start_id].add_outcoming_edge(edge)
         self.vertices[end_id].add_incoming_edge(edge)
         if not is_oneway:
-            edge = Edge(end_id, start_id, weight, Edge.edge_id, is_oneway)
+            edge = Edge(end_id, start_id, weight, Edge.edge_id, is_oneway, duplicate=True)
             self.edges.append(edge)
             self.vertices[end_id].add_outcoming_edge(edge)
             self.vertices[end_id].add_incoming_edge(edge)

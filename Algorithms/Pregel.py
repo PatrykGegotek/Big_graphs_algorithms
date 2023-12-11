@@ -10,7 +10,8 @@ import pandas as pd
 
 from Data import Data_Processing
 from Data.Graph import Graph, Vertex
-from Visualization.Visualization import initialize_dataframe, update_dataframe, process_dataframe, get_color, get_cmap
+from Visualization.Visualization import initialize_dataframe, update_dataframe, process_dataframe, get_color, get_cmap, \
+    generate_pregel_map
 
 MESSAGES_NUMBER = 0
 SENT_MESSAGES = 0
@@ -90,25 +91,12 @@ graph = Graph()
 print(f"Liczba wierzchołków: {len(graph.vertices)}")
 print(f"Liczba krawędzi: {len(graph.edges)}")
 
-steps = 3
+steps = 15
 
 graph.initialize_traffic(probability=0.75, max_value=90)
 gdf = run_pregel(graph, max_supersteps=steps)
 gdf = process_dataframe(gdf)
 
-print(gdf)
+# print(gdf)
 
-for i in range(steps):
-    mapa = folium.Map(location=[50.074, 19.92], zoom_start=13)
-
-    for _, row in gdf.iterrows():
-        folium.PolyLine(
-            locations=[(y, x) for x, y in row['geometry'].coords],
-            color=get_color(row['traffic'][i], 60, get_cmap()),
-            weight=2
-        ).add_to(mapa)
-
-    mapa.save(f'Traffic_{i}.html')
-    import webbrowser
-
-    webbrowser.open(f'Traffic_{i}.html')
+generate_pregel_map(gdf, "Pregel", steps, 5)

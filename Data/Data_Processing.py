@@ -1,9 +1,7 @@
-import sys
-
+import pandas as pd
 import psycopg2
 from shapely.wkt import loads
 import matplotlib.pyplot as plt
-from shapely.geometry import LineString
 from shapely.ops import transform
 from pyproj import Transformer
 
@@ -103,29 +101,17 @@ def get_weight(highway_type):
 # # visualize_graph()
 
 
-
-
-
-
-
-
-
-
-
-
 def draw_edge(ax, start_wkt, end_wkt, source, target, weight):
     start = start_wkt
     end = end_wkt
     # print(start.x)
     # if start.x < 2217500 or end.x < 2217500 or start.x > 2218500 or start.y > 6458400 or end.y > 6459000:
     #     return
-    ax.plot([start[0], end[0]], [start[1], end[1]], 'b-', linewidth=(weight/5)+1) # Krawędzie jako niebieskie linie
-    ax.plot(start[0], start[1], 'ro', markersize=2) # Wierzchołki jako czerwone kropki
+    ax.plot([start[0], end[0]], [start[1], end[1]], 'b-', linewidth=(weight / 5) + 1)  # Krawędzie jako niebieskie linie
+    ax.plot(start[0], start[1], 'ro', markersize=2)  # Wierzchołki jako czerwone kropki
     # ax.text(start.x, start.y, f'{source}', color='green', fontsize=6)
     ax.plot(end[0], end[1], 'ro', markersize=2)
     # ax.text(end.x, end.y, f'{target}', color='green', fontsize=6)
-
-
 
 
 def get_cracow_graph():
@@ -157,8 +143,6 @@ def get_cracow_graph():
               "('footway', 'cycleway', 'elevator', 'steps', 'service', 'path', 'proposed', 'track', " \
               "'pedestrian', 'bridleway', 'corridor', 'planned', 'raceway');"
 
-
-
         # sql = "SELECT ST_AsText(ST_Transform(ST_StartPoint(way), 4326)) AS start_point, " \
         #       "ST_AsText(ST_Transform(ST_EndPoint(way), 4326)) AS end_point, " \
         #       "source, target, cost, highway " \
@@ -176,8 +160,8 @@ def get_cracow_graph():
         conn.close()
 
         # print(rows)
-        for row in rows:
-            print(row[-2])
+        # for row in rows:
+        # print(row[-2])
 
         id = 0
         new_rows = []
@@ -190,8 +174,6 @@ def get_cracow_graph():
 
         # Transformacja LineString do UTM
 
-
-
         for row in rows:
             multilinestring = row[0]
             source = row[1]
@@ -199,13 +181,13 @@ def get_cracow_graph():
             highway = row[3]
             oneway = row[4]
             multi_line = loads(multilinestring)
-            print(multi_line)
+            # print(multi_line)
             for line in multi_line.geoms:
                 meters = transform(transform_point, line).length
                 line_length = len(line.coords)
                 if meters > 200:
                     number_of_segments = int(meters // 100)
-                    step = int(line_length//number_of_segments)
+                    step = int(line_length // number_of_segments)
                     if step == 0:
                         step = 1
                     # print()
@@ -213,7 +195,7 @@ def get_cracow_graph():
                     # print(f"line_length:{line_length}")
                     # print(f"step:{step}")
                     # print()
-                    print("\n", "START PROCESSING")
+                    # print("\n", "START PROCESSING")
                     for i in range(0, line_length - 1, step):
                         start_point = line.coords[i]
                         last_index = line_length - 1 if step + i >= line_length - 1 else i + step
@@ -221,23 +203,24 @@ def get_cracow_graph():
                         # print(f"last_index:{last_index}")
                         end_point = line.coords[last_index]
                         if i == 0:
-                            print("PROCESS START NODE: ", source)
+                            # print("PROCESS START NODE: ", source)
                             new_source = str(source)
                         else:
                             new_source = f"custom_{id}"
-                            print("Middle: ", new_source)
+                            # print("Middle: ", new_source)
                             id += 1
                         if last_index == line_length - 1:
-                            print("PROCESS END NODE: ", target)
+                            # print("PROCESS END NODE: ", target)
                             new_target = str(target)
                         else:
                             new_target = f"custom_{id}"
-                            print("Middle: ", new_target)
+                            # print("Middle: ", new_target)
                         start_point = [start_point[0], start_point[1]]
                         end_point = [end_point[0], end_point[1]]
-                        new_rows.append([start_point, end_point, new_source, new_target, highway, oneway, get_weight(highway)])
+                        new_rows.append(
+                            [start_point, end_point, new_source, new_target, highway, oneway, get_weight(highway)])
                 else:
-                    print("NO PROCESSING")
+                    # print("NO PROCESSING")
                     start_point = line.coords[0]
                     end_point = line.coords[-1]
                     start_point = [start_point[0], start_point[1]]
@@ -247,6 +230,8 @@ def get_cracow_graph():
         # for row in new_rows:
         #     print(row)
         # sys.exit()
+        pd.set_option('display.max_columns', None)
+        print(f"Original length: {len(new_rows)}")
         return new_rows
 
     except psycopg2.Error as e:
@@ -270,6 +255,7 @@ def visualize_graph():
     ax.set_xlabel("Długość geograficzna")
     ax.set_ylabel("Szerokość geograficzna")
     plt.show()
+
 
 
 # visualize_graph()
