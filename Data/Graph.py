@@ -45,13 +45,14 @@ class Edge:
     static_edges = []
     edge_id = 0
 
-    def __init__(self, start_vertex, end_vertex, weight, id, oneway, duplicate=False):
+    def __init__(self, start_vertex, end_vertex, weight, id, oneway, meters, duplicate=False):
         self.start_vertex = start_vertex
         self.end_vertex = end_vertex
         self.weight = weight
         self.id = id
         self.oneway = oneway
         self.value = 0
+        self.meters = meters
         self.duplicate = duplicate
 
     def __str__(self):
@@ -70,28 +71,28 @@ class Graph:
             rows = Data_Processing.get_cracow_graph()
 
         for row in rows:
-            start_point, end_point, source, target, highway, oneway, weight = row
-            self.add_edge(start_point, end_point, str(source), str(target), oneway, weight)
+            start_point, end_point, source, target, highway, oneway, weight, meters = row
+            self.add_edge(start_point, end_point, str(source), str(target), oneway, weight, meters)
 
-        print(f"Created graph with {len(self.vertices)} vertices and {len(self.edges)} edges.")
+        # print(f"Created graph with {len(self.vertices)} vertices and {len(self.edges)} edges.")
 
     def add_vertex(self, vertex):
         if vertex.id not in self.vertices:
             self.vertices[vertex.id] = vertex
 
-    def add_edge(self, start_point, end_point, start_id, end_id, oneway, weight):
+    def add_edge(self, start_point, end_point, start_id, end_id, oneway, weight, meters):
         is_oneway = oneway == 'yes'
         if start_id not in self.vertices:
             self.add_vertex(Vertex(start_id, start_point[0], start_point[1]))
         if end_id not in self.vertices:
             self.add_vertex(Vertex(end_id, end_point[0], end_point[1]))
 
-        edge = Edge(start_id, end_id, weight, Edge.edge_id, is_oneway)
+        edge = Edge(start_id, end_id, weight, Edge.edge_id, is_oneway, meters)
         self.edges.append(edge)
         self.vertices[start_id].add_outcoming_edge(edge)
         self.vertices[end_id].add_incoming_edge(edge)
         if not is_oneway:
-            edge = Edge(end_id, start_id, weight, Edge.edge_id, is_oneway, duplicate=True)
+            edge = Edge(end_id, start_id, weight, Edge.edge_id, is_oneway, meters, duplicate=True)
             self.edges.append(edge)
             self.vertices[end_id].add_outcoming_edge(edge)
             self.vertices[end_id].add_incoming_edge(edge)
@@ -102,3 +103,8 @@ class Graph:
             vertex = self.vertices.get(edge.start_vertex)
             vertex.initialize_traffic(probability, max_value, edge.weight)
 
+    def initialize_compressed_traffic(self, n_vertices, initial_value):
+        for i in range(n_vertices):
+            vertex = random.choice(list(self.vertices.values()))
+            vertex.value = initial_value
+            vertex.active = True

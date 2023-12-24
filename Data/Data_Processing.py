@@ -1,5 +1,6 @@
 import pandas as pd
 import psycopg2
+from shapely import LineString
 from shapely.wkt import loads
 import matplotlib.pyplot as plt
 from shapely.ops import transform
@@ -108,7 +109,7 @@ def draw_edge(ax, start_wkt, end_wkt, source, target, weight):
     # if start.x < 2217500 or end.x < 2217500 or start.x > 2218500 or start.y > 6458400 or end.y > 6459000:
     #     return
     ax.plot([start[0], end[0]], [start[1], end[1]], 'b-', linewidth=(weight / 5) + 1)  # Krawędzie jako niebieskie linie
-    ax.plot(start[0], start[1], 'ro', markersize=2)  # Wierzchołki jako czerwone kropki
+    ax.plot(start[0], start[1], 'ro', markersize=3)  # Wierzchołki jako czerwone kropki
     # ax.text(start.x, start.y, f'{source}', color='green', fontsize=6)
     ax.plot(end[0], end[1], 'ro', markersize=2)
     # ax.text(end.x, end.y, f'{target}', color='green', fontsize=6)
@@ -181,57 +182,45 @@ def get_cracow_graph():
             highway = row[3]
             oneway = row[4]
             multi_line = loads(multilinestring)
-            # print(multi_line)
             for line in multi_line.geoms:
                 meters = transform(transform_point, line).length
                 line_length = len(line.coords)
-                if meters > 200:
-                    number_of_segments = int(meters // 100)
+                if meters > 100:
+                    number_of_segments = int(meters // 100) + 1
                     step = int(line_length // number_of_segments)
                     if step == 0:
                         step = 1
-                    # print()
-                    # print("values")
-                    # print(f"line_length:{line_length}")
-                    # print(f"step:{step}")
-                    # print()
-                    # print("\n", "START PROCESSING")
                     for i in range(0, line_length - 1, step):
                         start_point = line.coords[i]
                         last_index = line_length - 1 if step + i >= line_length - 1 else i + step
-                        # print(f"i:{i}")
-                        # print(f"last_index:{last_index}")
                         end_point = line.coords[last_index]
                         if i == 0:
-                            # print("PROCESS START NODE: ", source)
                             new_source = str(source)
                         else:
                             new_source = f"custom_{id}"
-                            # print("Middle: ", new_source)
                             id += 1
                         if last_index == line_length - 1:
-                            # print("PROCESS END NODE: ", target)
                             new_target = str(target)
                         else:
                             new_target = f"custom_{id}"
-                            # print("Middle: ", new_target)
                         start_point = [start_point[0], start_point[1]]
                         end_point = [end_point[0], end_point[1]]
-                        new_rows.append(
-                            [start_point, end_point, new_source, new_target, highway, oneway, get_weight(highway)])
+                        meters_len = transform(transform_point, LineString([start_point, end_point])).length
+                        new_rows.append([start_point, end_point, new_source, new_target, highway, oneway, get_weight(highway), meters_len])
                 else:
                     # print("NO PROCESSING")
                     start_point = line.coords[0]
                     end_point = line.coords[-1]
                     start_point = [start_point[0], start_point[1]]
                     end_point = [end_point[0], end_point[1]]
-                    new_rows.append([start_point, end_point, source, target, highway, oneway, get_weight(highway)])
+                    new_rows.append([start_point, end_point, source, target, highway, oneway, get_weight(highway), meters])
 
         # for row in new_rows:
         #     print(row)
         # sys.exit()
         pd.set_option('display.max_columns', None)
         print(f"Original length: {len(new_rows)}")
+        print(new_rows)
         return new_rows
 
     except psycopg2.Error as e:
@@ -247,8 +236,9 @@ def visualize_graph():
     fig, ax = plt.subplots(figsize=(60, 36))  # Ustawienie większego rozmiaru wykresu
 
     # Rysowanie krawędzi
-    for start, end, source, target, highway, weight in rows:
-        draw_edge(ax, start, end, source, target, weight)
+    for start, end, source, target, highway, oneway, weight, meters in rows:
+        if 19.85 < start[0] < 19.95 and 50.05 < start[1] < 50.15:
+            draw_edge(ax, start, end, source, target, weight)
 
     # Ustawienia wykresu
     ax.set_title("Graf Drogowy Krakowa")

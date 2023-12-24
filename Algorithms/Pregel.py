@@ -1,9 +1,3 @@
-#TODO:
-# samochody chętniej skręcają w ulice o wyższej randze
-# dodać długość ulicy do Edge
-# ulica może pomieścić daną liczbę samochodów definiowaną przez jej długość
-# gdy samochody nie mogą skręcić w daną ulicę to pozostają na obecnej lub przedostaje się tylko ta część poniżej limitu
-
 import folium as folium
 import random
 import pandas as pd
@@ -27,7 +21,32 @@ def compute(vertex: Vertex):
         vertex.message_received = False
 
 
-def send_message(vertex: Vertex):
+# def add_value_to_end_vertex(target_vertex, transmit_value):
+
+
+def send_message_uniform(graph: Graph, vertex: Vertex):
+    global SENT_MESSAGES
+    if vertex.value > 0:
+        total_edges = len(vertex.outcoming_edges)
+        if total_edges > 0:
+            minimal_value = vertex.value / total_edges
+            for edge in vertex.outcoming_edges:
+                if vertex.value == 0:
+                    break
+                transmit_value = int(random.uniform(0.4, 1.0) * minimal_value)
+                if transmit_value == 0 or transmit_value > vertex.value:
+                    transmit_value = vertex.value
+                target_vertex = graph.vertices[edge.end_vertex]
+                target_vertex.messages.append(transmit_value)
+                target_vertex.message_received = True
+                vertex.value -= transmit_value
+
+                SENT_MESSAGES += 1
+    vertex.active = (vertex.value > 0)
+
+
+def send_message_weighted(graph: Graph, vertex: Vertex):
+    global SENT_MESSAGES
     if vertex.value > 0:
         total_edges = len(vertex.outcoming_edges)
         if total_edges > 0:
@@ -43,16 +62,33 @@ def send_message(vertex: Vertex):
                 transmit_value = int(random.uniform(0.4, 1.0) * minimal_value * edge.weight)
                 if transmit_value == 0 or transmit_value > vertex.value:
                     transmit_value = vertex.value
-                target_vertex = graph.vertices[edge.end_vertex]  #TODO: DO EDYCJI
+                target_vertex = graph.vertices[edge.end_vertex]
                 target_vertex.messages.append(transmit_value)
                 target_vertex.message_received = True
                 vertex.value -= transmit_value
-                global SENT_MESSAGES
+
                 SENT_MESSAGES += 1
     vertex.active = (vertex.value > 0)
 
 
-def run_pregel(graph: Graph, max_supersteps: int):
+def run_pregel(max_supersteps: int, initialization_variant: int = 0, sending_variant: int = 0, initialization_vertices: int = 0):
+    n_received_messages = []
+    n_sent_messages = []
+    total_movement = []
+    active_vertices = []
+    time = []
+    graph = Graph()
+    if initialization_variant == 0:
+        graph.initialize_traffic(probability=0.75, max_value=90)
+    elif initialization_variant == 1:
+        graph.initialize_compressed_traffic(initialization_vertices, 20000)
+
+    sending_function = None
+    if sending_variant == 0:
+        sending_function = send_message_uniform
+    elif sending_variant == 1:
+        sending_function = send_message_weighted
+
     gdf = initialize_dataframe(graph)
 
     for step in range(max_supersteps):
@@ -69,7 +105,7 @@ def run_pregel(graph: Graph, max_supersteps: int):
         for vertex in graph.vertices.values():
             if vertex.active:
                 traffic_sum += vertex.value
-                send_message(vertex)
+                sending_function(graph, vertex)
                 active_vertices += 1
 
         gdf = update_dataframe(graph, gdf)
@@ -85,18 +121,9 @@ def run_pregel(graph: Graph, max_supersteps: int):
     pd.set_option('display.max_columns', None)
     return gdf
 
-
-graph = Graph()
-
-print(f"Liczba wierzchołków: {len(graph.vertices)}")
-print(f"Liczba krawędzi: {len(graph.edges)}")
-
-steps = 15
-
-graph.initialize_traffic(probability=0.75, max_value=90)
-gdf = run_pregel(graph, max_supersteps=steps)
+supersteps = 20
+step = 10
+gdf = run_pregel(max_supersteps=supersteps, initialization_variant=1, sending_variant=1, initialization_vertices=30)
 gdf = process_dataframe(gdf)
 
-# print(gdf)
-
-generate_pregel_map(gdf, "Pregel", steps, 5)
+# generate_pregel_map(gdf, "Pregel", supersteps, step)

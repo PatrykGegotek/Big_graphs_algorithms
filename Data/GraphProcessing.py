@@ -38,11 +38,12 @@ def create_pure_data(graph: Graph):
         if edge.value == 1 and edge.duplicate is False:
             start = graph.vertices[edge.start_vertex]
             end = graph.vertices[edge.end_vertex]
-            graph_list.append([[start.x, start.y], [end.x, end.y], start.id, end.id, None, edge.oneway, edge.weight])
+            graph_list.append([[start.x, start.y], [end.x, end.y], start.id, end.id, None, edge.oneway, edge.weight, int(edge.meters)])
 
     print(f"Result length: {len(graph_list)}")
 
     with open(GRAPH_PATH, 'wb') as file:
         pickle.dump(graph_list, file)
+
 
 create_pure_data(graph=Graph())

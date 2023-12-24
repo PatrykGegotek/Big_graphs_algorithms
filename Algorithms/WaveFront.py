@@ -153,8 +153,8 @@ graph = Graph()
 
 # Oblicz odległości
 
-distances = wavefront_single(graph)
-# distances = wavefront_multiple(graph, 8)
+# distances = wavefront_single(graph)
+distances = wavefront_multiple(graph, 3)
 
 edge_gdf = create_edge_geodataframe(graph, distances)
 

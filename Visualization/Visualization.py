@@ -3,6 +3,7 @@ import geopandas as gpd
 import matplotlib.colors as mcolors
 import webbrowser
 
+import pandas as pd
 from matplotlib.colors import LinearSegmentedColormap
 from shapely import LineString
 
@@ -32,6 +33,8 @@ def update_dataframe(graph, gdf):
     for i, row in gdf.iterrows():
         start_vertex_id = row['start']
         end_vertex_id = row['end']
+        # if graph.vertices.get(start_vertex_id).value == 0 and graph.vertices.get(end_vertex_id).value == 0:
+        #     continue
 
         # Uzyskanie wierzchołków startowego i końcowego na podstawie identyfikatorów
         start_vertex = graph.vertices[start_vertex_id]
@@ -43,42 +46,57 @@ def update_dataframe(graph, gdf):
 
 
 def process_dataframe(df):
-    rows_to_add = []
-    matched_ids = set()
+    # rows_to_add = []
+    # matched_ids = set()
+    #
+    # for i in range(len(df)):
+    #     if df.loc[i, 'edge_id'] in matched_ids:
+    #         continue
+    #     if df.loc[i, 'oneway']:
+    #         # rows_to_add.append(df.iloc[i])
+    #         new_row = {
+    #             'start': df.loc[i, 'start'],
+    #             'end': df.loc[i, 'end'],
+    #             'traffic': df.loc[i, 'traffic'],
+    #             'geometry': df.loc[i, 'geometry']
+    #         }
+    #
+    #         rows_to_add.append(new_row)
+    #     else:
+    #         edge_id = df.loc[i, 'edge_id']
+    #         duplicate_row = df[(df['edge_id'] == edge_id)]
+    #
+    #         if not duplicate_row.empty:
+    #             duplicate_index = duplicate_row.index[0]
+    #             summed_traffic = [sum(x) for x in zip(df.loc[i, 'traffic'], df.loc[duplicate_index, 'traffic'])]
+    #
+    #             new_row = {
+    #                 'start': df.loc[i, 'start'],
+    #                 'end': df.loc[i, 'end'],
+    #                 'traffic': summed_traffic,
+    #                 'geometry': df.loc[i, 'geometry']
+    #             }
+    #
+    #             rows_to_add.append(new_row)
+    #         matched_ids.add(edge_id)
+    # new_df = gpd.GeoDataFrame(rows_to_add)
+    # print(new_df)
+    # return new_df
 
-    for i in range(len(df)):
-        if df.loc[i, 'edge_id'] in matched_ids:
-            continue
-        if df.loc[i, 'oneway']:
-            # rows_to_add.append(df.iloc[i])
-            new_row = {
-                'start': df.loc[i, 'start'],
-                'end': df.loc[i, 'end'],
-                'traffic': df.loc[i, 'traffic'],
-                'geometry': df.loc[i, 'geometry']
-            }
+    oneway_edges = df[df['oneway']].copy()
 
-            rows_to_add.append(new_row)
-        else:
-            edge_id = df.loc[i, 'edge_id']
-            duplicate_row = df[(df['edge_id'] == edge_id)]
+    # Przetwarzanie dla krawędzi dwukierunkowych
+    twoway_edges = df[~df['oneway']]
+    grouped = twoway_edges.groupby('edge_id').agg({
+        'start': 'first',
+        'end': 'first',
+        'traffic': lambda x: [sum(y) for y in zip(*x)],
+        'geometry': 'first'
+    }).reset_index(drop=True)
 
-            if not duplicate_row.empty:
-                duplicate_index = duplicate_row.index[0]
-                summed_traffic = [sum(x) for x in zip(df.loc[i, 'traffic'], df.loc[duplicate_index, 'traffic'])]
-
-                new_row = {
-                    'start': df.loc[i, 'start'],
-                    'end': df.loc[i, 'end'],
-                    'traffic': summed_traffic,
-                    'geometry': df.loc[i, 'geometry']
-                }
-
-                rows_to_add.append(new_row)
-            matched_ids.add(edge_id)
-    new_df = gpd.GeoDataFrame(rows_to_add)
-    print(new_df)
-    return new_df
+    # Łączenie wyników
+    new_df = pd.concat([oneway_edges, grouped], ignore_index=True)
+    return gpd.GeoDataFrame(new_df)
 
 
 def get_color(traffic_value, max_traffic, cmap):
@@ -111,6 +129,7 @@ def generate_wavefront_map(gdf, name):
     mapa.save(f'{DIRECTORY}/{name}.html')
     webbrowser.open(f'{ABSOLUTE_PATH}/{name}.html')
 
+
 def generate_random_walk_map(gdf, name, max_value):
     mapa = folium.Map(location=[50.050, 19.941], zoom_start=12)
 
@@ -124,11 +143,14 @@ def generate_random_walk_map(gdf, name, max_value):
     mapa.save(f'{DIRECTORY}/{name}.html')
     webbrowser.open(f'{ABSOLUTE_PATH}/{name}.html')
 
+
 def generate_pregel_map(gdf, name, steps, leap=1):
     for i in range(steps):
-        mapa = folium.Map(location=[50.074, 19.92], zoom_start=13)
+        mapa = folium.Map(location=[50.050, 19.941], zoom_start=12)
 
         for _, row in gdf.iterrows():
+            if row['traffic'][i] == 0:
+                continue
             folium.PolyLine(
                 locations=[(y, x) for x, y in row['geometry'].coords],
                 color=get_color(row['traffic'][i], 60, get_cmap()),
