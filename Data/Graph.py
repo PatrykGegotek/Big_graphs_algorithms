@@ -16,6 +16,7 @@ class Vertex:
         self.outcoming_edges = []  # Lista krawędzi wychodzących z tego wierzchołka
         self.incoming_edges = []  # Lista krawędzi wychodzących z tego wierzchołka
         self.value = 0  # Początkowa wartość, np. natężenie ruchu
+        self.values = []
         self.messages = []
         self.active = False  # Czy wierzchołek jest aktywny
         self.message_received = False
@@ -54,6 +55,7 @@ class Edge:
         self.value = 0
         self.meters = meters
         self.duplicate = duplicate
+        self.values = []
 
     def __str__(self):
         return f"Edge(from: {self.start_vertex}, to: {self.end_vertex}, weight: {self.weight:.0f})"
@@ -103,8 +105,9 @@ class Graph:
             vertex = self.vertices.get(edge.start_vertex)
             vertex.initialize_traffic(probability, max_value, edge.weight)
 
-    def initialize_compressed_traffic(self, n_vertices, initial_value):
-        for i in range(n_vertices):
-            vertex = random.choice(list(self.vertices.values()))
+    def initialize_compressed_traffic(self, vertices_ids, initial_value):
+        for vertex_id in vertices_ids:
+            # vertex = random.choice(list(self.vertices.values()))
+            vertex = self.vertices.get(vertex_id)
             vertex.value = initial_value
             vertex.active = True
