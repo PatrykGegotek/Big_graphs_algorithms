@@ -104,8 +104,8 @@ def sigma_tests(initial_value, multipliers, n_points, repetitions, variant=0):
                                           'seconds': ['mean', 'std'],
                                           'n_visited_edges': ['mean', 'std']}).reset_index()
     create_sigma_plots(grouped_df)
-    for sigma, mean, gdf in gdfs:
-        generate_random_walk_map(gdf, f"Random_Walk_Sigma={sigma}", mean * 2)
+    # for sigma, mean, gdf in gdfs:
+    #     generate_random_walk_map(gdf, f"Random_Walk_Sigma={sigma}", mean * 2)
 
 
 def samples_tests(initial_value, multipliers, sigma, repetitions):
@@ -141,8 +141,8 @@ def samples_tests(initial_value, multipliers, sigma, repetitions):
 
 
 pd.set_option('display.max_columns', None)
-# sigma_tests(initial_value=500, multipliers=8, n_points=200, repetitions=20, variant=0)
-# sigma_tests(initial_value=5000, multipliers=12, n_points=100, repetitions=20, variant=1)
+sigma_tests(initial_value=500, multipliers=8, n_points=200, repetitions=20, variant=0)
+sigma_tests(initial_value=5000, multipliers=12, n_points=100, repetitions=20, variant=1)
 samples_tests(initial_value=500, multipliers=12, sigma=1000, repetitions=20)
 
 # graph = Graph()

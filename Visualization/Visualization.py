@@ -194,34 +194,25 @@ def create_path_geodataframe(graph: Graph, verteces: [str]):
     return gpd.GeoDataFrame(data, columns=['geometry', 'distance', 'nodes'])
 
 
-def generate_wavefront_map(gdf, name, max_value, start_points):
+def generate_wavefront_map(gdf, name, max_value, additional_names):
     mapa = folium.Map(location=[50.050, 19.941], zoom_start=13)
 
-    for _, row in gdf.iterrows():
-        if row['distance'] == 0:
-            continue
-        folium.PolyLine(
-            locations=[(y, x) for x, y in row['geometry'].coords],
-            color=get_color(row['distance'], max_value, get_cmap()),
-            weight=2
-        ).add_to(mapa)
+    for i in range(len(gdf['distance'].iloc[0])):
+        for _, row in gdf.iterrows():
+            if row['distance'][i] == 0:
+                continue
+            folium.PolyLine(
+                locations=[(y, x) for x, y in row['geometry'].coords],
+                color=get_color(row['distance'][i], max_value, get_cmap()),
+                weight=2
+            ).add_to(mapa)
 
-    for point in start_points:
-        folium.CircleMarker(
-            location=point,  # Współrzędne punktu (lat, lon)
-            color='purple',
-            fill=True,
-            fill_color='purple',
-            radius=5  # Rozmiar markera
-        ).add_to(mapa)
-
-    mapa.save(f'{DIRECTORY}/{name}.html')
-    webbrowser.open(f'{ABSOLUTE_PATH}/{name}.html')
+        mapa.save(f'{DIRECTORY}/{name}_{additional_names[i]}.html')
+        webbrowser.open(f'{ABSOLUTE_PATH}/{name}_{additional_names[i]}.html')
 
 
-def generate_wavefront_map2(gdf, name, max_value, start_points):
+def generate_wavefront_map2(gdf, name, max_value, start_points, additional_names):
     mapa = folium.Map(location=[50.050, 19.941], zoom_start=13)
-    print(gdf)
 
     for i in range(len(gdf['distance'].iloc[0])):
         for _, row in gdf.iterrows():
@@ -242,8 +233,8 @@ def generate_wavefront_map2(gdf, name, max_value, start_points):
                 radius=5  # Rozmiar markera
             ).add_to(mapa)
 
-        mapa.save(f'{DIRECTORY}/{name}_{i}.html')
-        webbrowser.open(f'{ABSOLUTE_PATH}/{name}_{i}.html')
+        mapa.save(f'{DIRECTORY}/{name}_{additional_names[i]}.html')
+        webbrowser.open(f'{ABSOLUTE_PATH}/{name}_{additional_names[i]}.html')
 
 
 ###################### RANDOM WALK ###########################
@@ -303,16 +294,16 @@ def create_sigma_plots(grouped_df):
     plt.bar(sigmas, grouped_df['average_value']['mean'], yerr=grouped_df['average_value']['std'],
             align='center', alpha=0.5)
     plt.xlabel('Sigma [km]')
-    plt.ylabel('Średnia wartość')
-    plt.title('Średnia wartość w zależności od sigma')
+    plt.ylabel('Średnia wartość aktywacji')
+    plt.title('Średnia wartość aktywacji w zależności od sigma')
 
     # Średnia wartość i odchylenie standardowe dla "max_value" w zależności od "sigma"
     plt.subplot(2, 2, 2)
     plt.bar(sigmas, grouped_df['max_value']['mean'], yerr=grouped_df['max_value']['std'], align='center',
             alpha=0.5, color='red')
     plt.xlabel('Sigma [km]')
-    plt.ylabel('Maksymalna wartość')
-    plt.title('Maksymalna wartość w zależności od sigma')
+    plt.ylabel('Maksymalna wartość aktywacji')
+    plt.title('Maksymalna wartość aktywacji w zależności od sigma')
 
     # Średnia wartość i odchylenie standardowe dla "seconds" w zależności od "sigma"
     plt.subplot(2, 2, 3)
@@ -344,16 +335,16 @@ def create_samples_plots(grouped_df):
     plt.bar(sigmas, grouped_df['average_value']['mean'], yerr=grouped_df['average_value']['std'],
             align='center', alpha=0.5)
     plt.xlabel('Liczba punktów startowych [tys]')
-    plt.ylabel('Średnia wartość')
-    plt.title('Średnia wartość w zależności od liczby punktów')
+    plt.ylabel('Średnia wartość aktywacji')
+    plt.title('Średnia wartość aktywacji w zależności od liczby punktów')
 
     # Średnia wartość i odchylenie standardowe dla "max_value" w zależności od "sigma"
     plt.subplot(2, 2, 2)
     plt.bar(sigmas, grouped_df['max_value']['mean'], yerr=grouped_df['max_value']['std'], align='center',
             alpha=0.5, color='red')
     plt.xlabel('Liczba punktów startowych [tys]')
-    plt.ylabel('Maksymalna wartość')
-    plt.title('Maksymalna wartość w zależności od liczby punktów')
+    plt.ylabel('Maksymalna wartość aktywacji')
+    plt.title('Maksymalna wartość aktywacji w zależności od liczby punktów')
 
     # Średnia wartość i odchylenie standardowe dla "seconds" w zależności od "sigma"
     plt.subplot(2, 2, 3)
